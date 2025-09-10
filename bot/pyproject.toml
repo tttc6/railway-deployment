@@ -1,0 +1,14 @@
+[project]
+name = "bot"
+version = "0.1.0"
+description = "Trading Bot Service"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "redis>=5.0.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "ruff>=0.12.12",
+]

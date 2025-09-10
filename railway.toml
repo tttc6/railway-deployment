@@ -1,0 +1,21 @@
+[build]
+builder = "dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "always"
+
+[[services]]
+name = "api"
+source = "api/Dockerfile"
+variables = { REDIS_URL = "${{REDIS.REDIS_URL}}" }
+
+[[services]]  
+name = "bot"
+source = "bot/Dockerfile"
+variables = { REDIS_URL = "${{REDIS.REDIS_URL}}" }
+
+[[services]]
+name = "redis"
+source = "redis:7-alpine"
