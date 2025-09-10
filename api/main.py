@@ -1,6 +1,7 @@
-import os
-import redis
 import logging
+import os
+
+import redis
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -22,13 +23,13 @@ except redis.ConnectionError:
     r = None
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="../web"), name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 # Serve SPA
 @app.get("/")
 async def serve_spa():
-    return FileResponse("../web/index.html")
+    return FileResponse("static/index.html")
 
 
 # API routes

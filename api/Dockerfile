@@ -5,10 +5,8 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 WORKDIR /app
 
-# Copy API code and web assets
-COPY api/pyproject.toml ./api/
-COPY api/main.py ./api/
-COPY web/ ./web/
+# Copy API code and static assets
+COPY api ./api/
 
 # Install dependencies
 RUN cd api && uv sync --no-dev
