@@ -55,9 +55,6 @@ venv.bak/
 # Ruff
 .ruff_cache/
 
-# Claude Code
-.claude/
-
 # IDEs
 .vscode/
 .idea/

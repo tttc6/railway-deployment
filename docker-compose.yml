@@ -11,8 +11,8 @@ services:
 
   api:
     build:
-      context: .
-      dockerfile: api/Dockerfile
+      context: ./api
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     environment:
@@ -28,8 +28,8 @@ services:
 
   bot:
     build:
-      context: .
-      dockerfile: bot/Dockerfile
+      context: ./bot
+      dockerfile: Dockerfile
     environment:
       - REDIS_URL=redis://redis:6379
     depends_on:
