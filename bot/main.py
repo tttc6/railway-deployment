@@ -3,7 +3,7 @@ import logging
 import os
 from typing import Any, Dict
 
-import redis
+import redis.asyncio as redis
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -15,13 +15,15 @@ class TradingBot:
         self.running = False
         self.positions = {}
         self.pnl = 0.0
+        self.redis = None
+        self.redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
 
-        # Initialize Redis connection
-        redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+    async def connect_redis(self):
+        """Initialize async Redis connection"""
         try:
-            self.redis = redis.from_url(redis_url, decode_responses=True)
-            self.redis.ping()
-            logger.info(f"Connected to Redis at {redis_url}")
+            self.redis = redis.from_url(self.redis_url, decode_responses=True)
+            await self.redis.ping()
+            logger.info(f"Connected to Redis at {self.redis_url}")
         except redis.ConnectionError as e:
             logger.error(f"Failed to connect to Redis: {e}")
             self.redis = None
@@ -37,8 +39,8 @@ class TradingBot:
                 continue
 
             try:
-                # Block for up to 1 second waiting for commands
-                command = self.redis.brpop("bot_commands", timeout=1)
+                # Block for up to 1 second waiting for commands (async)
+                command = await self.redis.brpop("bot_commands", timeout=1)
                 if command:
                     cmd = (
                         command[1]
@@ -51,9 +53,9 @@ class TradingBot:
                         if not self.running:
                             self.running = True
                             logger.info("Bot started")
-                            # Start market data handler
-                            if market_data_task is None or market_data_task.done():
-                                market_data_task = asyncio.create_task(self.market_data_handler())
+                        # Start market data handler if not already running
+                        if market_data_task is None or market_data_task.done():
+                            market_data_task = asyncio.create_task(self.market_data_handler())
                         await self.update_status()
                     elif cmd == "STOP":
                         logger.info("Bot stopping...")
@@ -86,7 +88,7 @@ class TradingBot:
                 "positions": str(len(self.positions)),
                 "timestamp": str(asyncio.get_event_loop().time()),
             }
-            self.redis.hset("bot_status", mapping=status)
+            await self.redis.hset("bot_status", mapping=status)
             logger.debug(f"Status updated: {status}")
         except redis.RedisError as e:
             logger.error(f"Failed to update status: {e}")
@@ -113,6 +115,8 @@ class TradingBot:
             except Exception as e:
                 logger.error(f"Market data error: {e}")
                 await asyncio.sleep(5)
+        
+        logger.info("Market data handler stopped")
 
     async def process_market_data(self, data: str):
         """Process market data and make trading decisions"""
@@ -127,6 +131,9 @@ class TradingBot:
     async def start(self):
         """Main entry point"""
         logger.info("Starting trading bot listener...")
+        # Connect to Redis first
+        await self.connect_redis()
+        
         self.running = False
         await self.update_status()
 
@@ -139,6 +146,8 @@ class TradingBot:
         finally:
             self.running = False
             await self.update_status()
+            if self.redis:
+                await self.redis.close()
             logger.info("Bot stopped")
 
 
