@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime, timezone
 import logging
 import os
 from typing import Any, Dict
@@ -86,7 +87,7 @@ class TradingBot:
                 "running": str(self.running),
                 "pnl": str(self.pnl),
                 "positions": str(len(self.positions)),
-                "timestamp": str(asyncio.get_event_loop().time()),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
             await self.redis.hset("bot_status", mapping=status)
             logger.debug(f"Status updated: {status}")
