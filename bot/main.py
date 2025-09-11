@@ -28,7 +28,10 @@ class TradingBot:
 
     async def process_commands(self):
         """Process commands from the API via Redis"""
-        while self.running:
+        market_data_task = None
+        
+        # Keep processing commands indefinitely
+        while True:
             if not self.redis:
                 await asyncio.sleep(1)
                 continue
@@ -48,12 +51,21 @@ class TradingBot:
                         if not self.running:
                             self.running = True
                             logger.info("Bot started")
+                            # Start market data handler
+                            if market_data_task is None or market_data_task.done():
+                                market_data_task = asyncio.create_task(self.market_data_handler())
                         await self.update_status()
                     elif cmd == "STOP":
                         logger.info("Bot stopping...")
                         self.running = False
+                        # Cancel market data handler if running
+                        if market_data_task and not market_data_task.done():
+                            market_data_task.cancel()
+                            try:
+                                await market_data_task
+                            except asyncio.CancelledError:
+                                pass
                         await self.update_status()
-                        break
 
             except redis.RedisError as e:
                 logger.error(f"Redis command error: {e}")
@@ -114,18 +126,14 @@ class TradingBot:
 
     async def start(self):
         """Main entry point"""
-        logger.info("Starting trading bot...")
-        self.running = True
+        logger.info("Starting trading bot listener...")
+        self.running = False
         await self.update_status()
 
-        # Start concurrent tasks
-        tasks = [
-            asyncio.create_task(self.process_commands()),
-            asyncio.create_task(self.market_data_handler()),
-        ]
-
+        # Start the command processor which runs indefinitely
+        # The market data handler is started/stopped based on running state
         try:
-            await asyncio.gather(*tasks, return_exceptions=True)
+            await self.process_commands()
         except KeyboardInterrupt:
             logger.info("Received interrupt signal")
         finally:
