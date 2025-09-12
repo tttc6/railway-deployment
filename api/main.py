@@ -7,7 +7,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+from logging_config import setup_logging
+setup_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Trading Bot API", version="1.0.0")

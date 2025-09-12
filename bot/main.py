@@ -7,7 +7,8 @@ from typing import Any, Dict
 import redis.asyncio as redis
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+from logging_config import setup_logging
+setup_logging()
 logger = logging.getLogger(__name__)
 
 
