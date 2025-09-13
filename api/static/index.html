@@ -6,11 +6,30 @@
     </head>
     <body>
         <div id="app">
-            <h1>Trading Bot Dashboard</h1>
-            <div id="status"></div>
-            <button onclick="startBot()">Start Bot</button>
-            <button onclick="stopBot()">Stop Bot</button>
+            <header class="auth-header">
+                <h1>Trading Bot Dashboard</h1>
+                <div id="user-info" class="user-info">
+                    <span id="user-name"></span>
+                    <button id="logout-btn" onclick="logout()" style="display: none;">Logout</button>
+                </div>
+            </header>
+            
+            <div id="dashboard" class="dashboard" style="display: none;">
+                <div id="status"></div>
+                <div class="controls">
+                    <button onclick="startBot()">Start Bot</button>
+                    <button onclick="stopBot()">Stop Bot</button>
+                </div>
+            </div>
+            
+            <div id="login-screen" class="login-screen">
+                <div class="login-container">
+                    <h2>Please log in to continue</h2>
+                    <p>You need to authenticate with GitHub to access the trading bot dashboard.</p>
+                    <a href="/auth/github" class="login-btn">Login with GitHub</a>
+                </div>
+            </div>
         </div>
-        <script src="/static/app.js?v=2"></script>
+        <script src="/static/app.js?v=3"></script>
     </body>
 </html>

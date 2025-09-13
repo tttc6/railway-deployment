@@ -8,6 +8,7 @@ import redis.asyncio as redis
 
 # Configure logging
 from logging_config import setup_logging
+
 setup_logging()
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class TradingBot:
     async def process_commands(self):
         """Process commands from the API via Redis"""
         market_data_task = None
-        
+
         # Keep processing commands indefinitely
         while True:
             if not self.redis:
@@ -57,7 +58,9 @@ class TradingBot:
                             logger.info("Bot started")
                         # Start market data handler if not already running
                         if market_data_task is None or market_data_task.done():
-                            market_data_task = asyncio.create_task(self.market_data_handler())
+                            market_data_task = asyncio.create_task(
+                                self.market_data_handler()
+                            )
                         await self.update_status()
                     elif cmd == "STOP":
                         logger.info("Bot stopping...")
@@ -117,7 +120,7 @@ class TradingBot:
             except Exception as e:
                 logger.error(f"Market data error: {e}")
                 await asyncio.sleep(5)
-        
+
         logger.info("Market data handler stopped")
 
     async def process_market_data(self, data: str):
@@ -135,7 +138,7 @@ class TradingBot:
         logger.info("Starting trading bot listener...")
         # Connect to Redis first
         await self.connect_redis()
-        
+
         self.running = False
         await self.update_status()
 

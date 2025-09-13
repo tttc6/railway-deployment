@@ -18,6 +18,10 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - ALLOWED_GITHUB_USERS=${ALLOWED_GITHUB_USERS}
+      - SESSION_SECRET=${SESSION_SECRET}
     depends_on:
       redis:
         condition: service_healthy
