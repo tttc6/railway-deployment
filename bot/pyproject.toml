@@ -9,6 +9,4 @@ dependencies = [
 ]
 
 [tool.uv]
-dev-dependencies = [
-    "ruff>=0.12.12",
-]
+dev-dependencies = []

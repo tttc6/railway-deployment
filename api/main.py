@@ -4,25 +4,25 @@ from typing import Optional
 
 import redis
 import requests
-from fastapi import Depends, FastAPI, HTTPException, Request, Response
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
-from starlette.middleware.sessions import SessionMiddleware
-
-# Configure logging
-from logging_config import setup_logging
 from auth import (
-    SessionManager,
-    create_login_url,
-    get_optional_user,
-    require_auth,
-    is_authorized_user,
-    set_session_cookie,
-    clear_session_cookie,
     GITHUB_CLIENT_ID,
     GITHUB_CLIENT_SECRET,
     SESSION_SECRET,
+    SessionManager,
+    clear_session_cookie,
+    create_login_url,
+    get_optional_user,
+    is_authorized_user,
+    require_auth,
+    set_session_cookie,
 )
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+
+# Configure logging
+from logging_config import setup_logging
+from starlette.middleware.sessions import SessionMiddleware
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -53,7 +53,8 @@ async def serve_spa(
 ):
     session_cookie = request.cookies.get("session")
     logger.info(
-        f"Main route - Session cookie: {session_cookie[:20] if session_cookie else None}..."
+        f"Main route - Session cookie: "
+        f"{session_cookie[:20] if session_cookie else None}..."
     )
     logger.info(f"Main route - User: {user}")
     if not user:
@@ -117,7 +118,10 @@ async def auth_callback(request: Request, code: str, state: str):
             logger.error(f"GitHub OAuth error: {token_data}")
             raise HTTPException(
                 status_code=400,
-                detail=f"GitHub OAuth error: {token_data.get('error_description', token_data.get('error'))}",
+                detail=(
+                    f"GitHub OAuth error: "
+                    f"{token_data.get('error_description', token_data.get('error'))}"
+                ),
             )
 
         if not access_token:
@@ -142,8 +146,10 @@ async def auth_callback(request: Request, code: str, state: str):
                 <head><title>Access Denied</title></head>
                 <body>
                     <h1>Access Denied</h1>
-                    <p>Sorry, user '{username}' is not authorized to access this application.</p>
-                    <p>Please contact an administrator if you believe this is an error.</p>
+                    <p>Sorry, user '{username}' is not authorized to access
+                    this application.</p>
+                    <p>Please contact an administrator if you believe
+                    this is an error.</p>
                     <a href="/">Return to Home</a>
                 </body>
                 </html>
@@ -168,7 +174,7 @@ async def auth_callback(request: Request, code: str, state: str):
         logger.error(f"OAuth callback error: {e}")
         raise HTTPException(
             status_code=400, detail=f"OAuth authentication failed: {str(e)}"
-        )
+        ) from e
 
 
 @app.get("/auth/logout")
@@ -212,7 +218,9 @@ async def start_bot(user: dict = Depends(require_auth)):
         return {"status": "command sent"}
     except redis.RedisError as e:
         logger.error(f"Redis error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to send command to bot")
+        raise HTTPException(
+            status_code=500, detail="Failed to send command to bot"
+        ) from e
 
 
 @app.post("/api/bot/stop")
@@ -226,7 +234,9 @@ async def stop_bot(user: dict = Depends(require_auth)):
         return {"status": "command sent"}
     except redis.RedisError as e:
         logger.error(f"Redis error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to send command to bot")
+        raise HTTPException(
+            status_code=500, detail="Failed to send command to bot"
+        ) from e
 
 
 @app.get("/api/bot/status")
@@ -241,7 +251,7 @@ async def get_bot_status(user: dict = Depends(require_auth)):
         return status
     except redis.RedisError as e:
         logger.error(f"Redis error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get bot status")
+        raise HTTPException(status_code=500, detail="Failed to get bot status") from e
 
 
 # Health check endpoint
