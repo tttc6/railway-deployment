@@ -6,6 +6,7 @@ from typing import Dict, Optional
 from urllib.parse import urlencode
 
 import redis
+import requests
 from fastapi import Cookie, Depends, HTTPException, Request, Response
 
 logger = logging.getLogger(__name__)
@@ -29,9 +30,9 @@ GITHUB_API_BASE_URL = "https://api.github.com"
 try:
     redis_client = redis.from_url(REDIS_URL, decode_responses=True)
     redis_client.ping()  # Test connection
-    logger.info(f"Auth module connected to Redis at {REDIS_URL}")
+    logger.info(f"Auth service connected to Redis at {REDIS_URL}")
 except redis.ConnectionError:
-    logger.error(f"Auth module failed to connect to Redis at {REDIS_URL}")
+    logger.error(f"Auth service failed to connect to Redis at {REDIS_URL}")
     redis_client = None
 
 
@@ -110,6 +111,100 @@ class SessionManager:
             return False
 
 
+class OAuthService:
+    """OAuth authentication service"""
+
+    @staticmethod
+    def exchange_code_for_token(code: str) -> str:
+        """Exchange OAuth code for access token"""
+        try:
+            token_response = requests.post(
+                "https://github.com/login/oauth/access_token",
+                {
+                    "client_id": GITHUB_CLIENT_ID,
+                    "client_secret": GITHUB_CLIENT_SECRET,
+                    "code": code,
+                },
+                headers={"Accept": "application/json"},
+            )
+
+            logger.info(f"Token response status: {token_response.status_code}")
+            logger.info(f"Token response body: {token_response.text}")
+
+            token_data = token_response.json()
+            access_token = token_data.get("access_token")
+
+            if "error" in token_data:
+                logger.error(f"GitHub OAuth error: {token_data}")
+                error_desc = token_data.get(
+                    "error_description", token_data.get("error")
+                )
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"GitHub OAuth error: {error_desc}",
+                )
+
+            if not access_token:
+                raise HTTPException(
+                    status_code=400, detail="Failed to get access token"
+                )
+
+            return access_token
+
+        except requests.RequestException as e:
+            logger.error(f"Network error during token exchange: {e}")
+            raise HTTPException(
+                status_code=500, detail="Failed to communicate with GitHub"
+            ) from e
+
+    @staticmethod
+    def get_user_info(access_token: str) -> Dict:
+        """Get user information from GitHub API"""
+        try:
+            user_response = requests.get(
+                "https://api.github.com/user",
+                headers={"Authorization": f"Bearer {access_token}"},
+            )
+            user_response.raise_for_status()
+            user_data = user_response.json()
+
+            username = user_data.get("login")
+            if not username:
+                raise HTTPException(
+                    status_code=400, detail="Failed to get GitHub username"
+                )
+
+            return user_data
+
+        except requests.RequestException as e:
+            logger.error(f"Network error getting user info: {e}")
+            raise HTTPException(
+                status_code=500, detail="Failed to get user information from GitHub"
+            ) from e
+
+    @staticmethod
+    def process_oauth_callback(code: str, state: str, session_state: str) -> str:
+        """Process OAuth callback and return session ID"""
+        if session_state != state:
+            raise HTTPException(status_code=400, detail="Invalid state parameter")
+
+        access_token = OAuthService.exchange_code_for_token(code)
+        user_data = OAuthService.get_user_info(access_token)
+
+        username = user_data.get("login")
+        if not is_authorized_user(username):
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"User '{username}' is not authorized to access this application"
+                ),
+            )
+
+        session_id = SessionManager.create_session(user_data)
+        return session_id
+
+
+# FastAPI Dependencies
 def get_current_user(session_id: str = Cookie(None, alias="user_session")) -> Dict:
     """FastAPI dependency to get current authenticated user"""
     if not session_id:
@@ -146,6 +241,7 @@ def require_auth(request: Request, user: Dict = Depends(get_current_user)) -> Di
     return user
 
 
+# Utility Functions
 def create_login_url(request: Request) -> str:
     """Create GitHub OAuth login URL with state parameter for CSRF protection"""
     state = secrets.token_urlsafe(32)
