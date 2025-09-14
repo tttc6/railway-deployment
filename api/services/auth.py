@@ -17,7 +17,13 @@ GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
 ALLOWED_GITHUB_USERS = os.getenv("ALLOWED_GITHUB_USERS", "").split(",")
 SESSION_SECRET = os.getenv("SESSION_SECRET")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
-BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
+# Handle Railway's domain format (without protocol) or full URLs
+_base_url = os.getenv("BASE_URL", "http://localhost:8000")
+if not _base_url.startswith(("http://", "https://")):
+    # Assume HTTPS for production domains (Railway, etc.)
+    BASE_URL = f"https://{_base_url}"
+else:
+    BASE_URL = _base_url
 
 # Security configuration - secure by default, opt-out for development
 SECURE_COOKIES = os.getenv("SECURE_COOKIES", "true").lower() in ("true", "1", "on")
