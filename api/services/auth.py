@@ -17,6 +17,7 @@ GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
 ALLOWED_GITHUB_USERS = os.getenv("ALLOWED_GITHUB_USERS", "").split(",")
 SESSION_SECRET = os.getenv("SESSION_SECRET")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 # Security configuration - secure by default, opt-out for development
 SECURE_COOKIES = os.getenv("SECURE_COOKIES", "true").lower() in ("true", "1", "on")
@@ -250,7 +251,9 @@ def create_login_url(request: Request) -> str:
     # In production, you might want to store this in Redis with a short TTL
     request.session["oauth_state"] = state
 
-    redirect_uri = str(request.url_for("auth_callback"))
+    # Use explicit BASE_URL instead of request-based URL construction
+    # This ensures consistent redirect URIs regardless of proxy headers
+    redirect_uri = f"{BASE_URL.rstrip('/')}/auth/callback"
 
     params = {
         "client_id": GITHUB_CLIENT_ID,
