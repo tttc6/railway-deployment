@@ -21,6 +21,81 @@ h1 {
     margin-bottom: 30px;
 }
 
+/* Authentication UI */
+.auth-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 20px;
+}
+
+.auth-header h1 {
+    margin: 0;
+    text-align: left;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-info span {
+    font-weight: 500;
+    color: #495057;
+}
+
+.login-screen {
+    text-align: center;
+    padding: 40px 0;
+}
+
+.login-container {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 40px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.login-container h2 {
+    color: #343a40;
+    margin-bottom: 15px;
+}
+
+.login-container p {
+    color: #6c757d;
+    margin-bottom: 25px;
+    line-height: 1.6;
+}
+
+.login-btn {
+    display: inline-block;
+    background-color: #24292e;
+    color: white;
+    text-decoration: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: background-color 0.3s;
+}
+
+.login-btn:hover {
+    background-color: #1b1f23;
+}
+
+.dashboard {
+    /* Add any dashboard-specific styles here */
+}
+
+.controls {
+    text-align: center;
+    margin-top: 20px;
+}
+
 button {
     background-color: #007bff;
     color: white;
@@ -59,4 +134,21 @@ button:active {
 .button-group {
     text-align: center;
     margin-top: 20px;
+}
+
+/* Status display styling */
+.status-display {
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    padding: 15px;
+}
+
+.status-item {
+    margin: 8px 0;
+    font-size: 14px;
+}
+
+.status-item strong {
+    color: #495057;
+    font-weight: 600;
 }

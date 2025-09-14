@@ -1,84 +1,47 @@
 import logging
-import os
+from typing import Optional
 
-import redis
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import Depends, FastAPI, Request
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-
-# Configure logging
 from logging_config import setup_logging
+from routers import auth, bot
+from services.auth import SESSION_SECRET, get_optional_user
+from services.bot import bot_service
+from starlette.middleware.sessions import SessionMiddleware
+
 setup_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Trading Bot API", version="1.0.0")
 
-# Initialize Redis connection with error handling
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
-try:
-    r = redis.from_url(REDIS_URL, decode_responses=True)
-    r.ping()  # Test connection
-    logger.info(f"Connected to Redis at {REDIS_URL}")
-except redis.ConnectionError:
-    logger.error(f"Failed to connect to Redis at {REDIS_URL}")
-    r = None
+# Add session middleware
+app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET)
+
+# Include routers
+app.include_router(auth.router)
+app.include_router(bot.router)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-# Serve SPA
+# Serve SPA (redirects to login if not authenticated)
 @app.get("/")
-async def serve_spa():
+async def serve_spa(
+    request: Request, user: Optional[dict] = Depends(get_optional_user)
+):
+    session_cookie = request.cookies.get("session")
+    cookie_display = session_cookie[:20] if session_cookie else None
+    logger.info(f"Main route - Session cookie: {cookie_display}...")
+    logger.info(f"Main route - User: {user}")
+    if not user:
+        return RedirectResponse(url="/auth/login", status_code=302)
     return FileResponse("static/index.html")
-
-
-# API routes
-@app.post("/api/bot/start")
-async def start_bot():
-    if not r:
-        raise HTTPException(status_code=500, detail="Redis connection not available")
-
-    try:
-        r.lpush("bot_commands", "START")
-        logger.info("START command sent to bot")
-        return {"status": "command sent"}
-    except redis.RedisError as e:
-        logger.error(f"Redis error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to send command to bot")
-
-
-@app.post("/api/bot/stop")
-async def stop_bot():
-    if not r:
-        raise HTTPException(status_code=500, detail="Redis connection not available")
-
-    try:
-        r.lpush("bot_commands", "STOP")
-        logger.info("STOP command sent to bot")
-        return {"status": "command sent"}
-    except redis.RedisError as e:
-        logger.error(f"Redis error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to send command to bot")
-
-
-@app.get("/api/bot/status")
-async def get_bot_status():
-    if not r:
-        raise HTTPException(status_code=500, detail="Redis connection not available")
-
-    try:
-        status = r.hgetall("bot_status")
-        if not status:
-            return {"running": False, "message": "No status available"}
-        return status
-    except redis.RedisError as e:
-        logger.error(f"Redis error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get bot status")
 
 
 # Health check endpoint
 @app.get("/health")
 async def health_check():
-    redis_status = "connected" if r else "disconnected"
+    redis_status = bot_service.get_health_status()
     return {"status": "healthy", "redis": redis_status, "service": "api"}

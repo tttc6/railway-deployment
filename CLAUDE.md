@@ -1,2 +1,2 @@
 - You must always run python with `uv run`, in order to invoke the virtual environment.
-- You must always remember to rebuild the docker containers in order to test your changes.
+- Lint and format the whole project with ruff by calling `uv run ruff check` and `uv run ruff format` from the project root, after you have made changes.

@@ -13,15 +13,33 @@ services:
     build:
       context: ./api
       dockerfile: Dockerfile
+    command: ["uv", "run", "--no-dev", "--directory", "api", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     ports:
       - "8000:8000"
     environment:
       - REDIS_URL=redis://redis:6379
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - ALLOWED_GITHUB_USERS=${ALLOWED_GITHUB_USERS}
+      - SESSION_SECRET=${SESSION_SECRET}
     depends_on:
       redis:
         condition: service_healthy
     restart: always
+    develop:
+      watch:
+        - action: sync
+          path: ./api
+          target: /app/api
+          ignore:
+            - .venv/
+            - __pycache__/
+            - .ruff_cache/
+            - "*.pyc"
+            - README.md
+        - action: rebuild
+          path: ./api/pyproject.toml
 
   bot:
     build:
@@ -34,3 +52,16 @@ services:
       redis:
         condition: service_healthy
     restart: always
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./bot
+          target: /app/bot
+          ignore:
+            - .venv/
+            - __pycache__/
+            - .ruff_cache/
+            - "*.pyc"
+            - README.md
+        - action: rebuild
+          path: ./bot/pyproject.toml
